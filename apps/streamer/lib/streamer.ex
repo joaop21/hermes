@@ -1,18 +1,7 @@
 defmodule Streamer do
-  @moduledoc """
-  Documentation for `Streamer`.
-  """
 
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Streamer.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def start_streaming do
+    Streamer.Binance.start_link(["BTCEUR","ETHEUR"])
   end
+
 end
