@@ -3,6 +3,8 @@ defmodule Streamer.Kraken do
 
   require Logger
 
+  alias Streamer.Kraken.Spread
+
   @base_endpoint "wss://ws.kraken.com"
 
   ############################## Interface ##############################
@@ -48,9 +50,24 @@ defmodule Streamer.Kraken do
 
   ############################## WebSockex callback implementation ##############################
 
-  def handle_frame(msg, state) do
-    IO.inspect(msg)
+  def handle_frame({_type, msg}, state) do
+    case Jason.decode(msg) do
+      {:ok, spread} -> process_spread(spread)
+      {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
+    end
     {:ok, state}
+  end
+
+  @spec process_spread([String.t()]) :: Spread.t()
+  defp process_spread(spread) do
+    %Spread{
+      :pair => spread |> Enum.at(3),
+      :bid_price => spread |> Enum.at(1) |> Enum.at(0),
+      :bid_volume => spread |> Enum.at(1) |> Enum.at(3),
+      :ask_price => spread |> Enum.at(1) |> Enum.at(1),
+      :ask_volume => spread |> Enum.at(1) |> Enum.at(4),
+      :timestamp => spread |> Enum.at(1) |> Enum.at(2)
+    }
   end
 
 end
