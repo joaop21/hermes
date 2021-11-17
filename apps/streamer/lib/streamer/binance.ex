@@ -3,70 +3,38 @@ defmodule Streamer.Binance do
 
   require Logger
 
-  alias Streamer.Binance.TradeEvent
+  alias Streamer.Binance.Ticker
 
-  @base_endpoint "wss://stream.binance.com:9443/stream?streams="
+  @base_endpoint "wss://stream.binance.com:9443"
 
-  @spec start() :: :ok
-  def start do
-    get_symbols()
-    |> separate_symbols()
-    |> Enum.each(&start_link/1)
-  end
+  ############################## Interface ##############################
+
+  @spec stream_tickers() :: {:ok, pid()} | {:error, term()}
+  def stream_tickers, do: @base_endpoint <> "/ws/!bookTicker" |> start_link()
+
+  @spec start_link(url :: String.t()) :: {:ok, pid()} | {:error, term()}
+  defp start_link(url), do: WebSockex.start_link(url, __MODULE__, nil)
+
+  ############################## WebSockex callback implementation ##############################
 
   def handle_frame({_type, msg}, state) do
     case Jason.decode(msg) do
-      {:ok, event} -> process_event(event)
+      {:ok, ticker} -> process_ticker(ticker)
       {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
     end
     {:ok, state}
   end
 
-  @spec start_link([String.t()]) :: {:ok, pid()} | {:error, term()}
-  defp start_link(symbols) do
-    symbols
-    |> Enum.map(&String.downcase/1)
-    |> Enum.map(&(Kernel.<>(&1, "@trade")))
-    |> Enum.join("/")
-    |> (&(@base_endpoint <> &1)).()
-    |> WebSockex.start_link(__MODULE__, nil)
-  end
-
-  @spec get_symbols() :: [String.t()]
-  defp get_symbols do
-    Binance.get_exchange_info()
-    |> elem(1)
-    |> Map.get(:symbols)
-    |> Enum.map(&(&1["symbol"]))
-  end
-
-  @spec separate_symbols([String.t()]) :: [String.t()]
-  defp separate_symbols(symbols) do
-    symbols
-    |> Enum.with_index()
-    |> Enum.reduce(%{}, fn {element, index}, acc ->
-      position = div(index, 1024)
-      Map.get(acc, position, [])
-      |> Kernel.++([element])
-      |> (&(Map.put(acc, position, &1))).()
-    end)
-    |> Map.values()
-  end
-
-  defp process_event(%{"data" => %{"e" => "trade"} = event}) do
-    trade_event = %TradeEvent{
-      :event_type => event["e"],
-      :event_time => event["E"],
-      :symbol => event["s"],
-      :trade_id => event["t"],
-      :price => event["p"],
-      :quantity => event["q"],
-      :buyer_order_id => event["b"],
-      :seller_order_id => event["a"],
-      :trade_time => event["T"],
-      :buyer_market_maker => event["m"]
+  @spec process_ticker(ticker :: map()) :: Ticker.t()
+  defp process_ticker(ticker) do
+    %Ticker{
+      :order_book_update_id => ticker["u"],
+      :symbol => ticker["s"],
+      :bid_price => ticker["b"],
+      :bid_quantity => ticker["B"],
+      :ask_price => ticker["a"],
+      :ask_quantity => ticker["A"]
     }
-    Logger.info("Trade event received " <> "#{trade_event.symbol}@#{trade_event.price}")
   end
 
 end
