@@ -52,8 +52,10 @@ defmodule Streamer.Kraken do
 
   def handle_frame({_type, msg}, state) do
     case Jason.decode(msg) do
-      {:ok, spread} -> process_spread(spread)
+      {:ok, [_channel_id | _tail] = spread} -> process_spread(spread)
+      {:ok, %{"connectionID" => _conn}} -> Logger.info("Connection established!")
       {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
+      _ -> :ok
     end
     {:ok, state}
   end
