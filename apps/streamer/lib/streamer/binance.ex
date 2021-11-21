@@ -25,7 +25,7 @@ defmodule Streamer.Binance do
     {:ok, state}
   end
 
-  @spec process_ticker(ticker :: map()) :: Ticker.t()
+  @spec process_ticker(ticker :: map()) :: Ticker.ticker()
   defp process_ticker(ticker) do
     %Ticker{
       :order_book_update_id => ticker["u"],

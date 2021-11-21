@@ -9,7 +9,7 @@ defmodule Streamer.Kraken do
 
   ############################## Interface ##############################
 
-  @spec stream_spread() :: {:ok, pid()} | {:error, term()}
+  @spec stream_spread() :: :ok | {:error, String.t()} | node()
   def stream_spread do
     @base_endpoint
     |> start_link()
@@ -60,7 +60,7 @@ defmodule Streamer.Kraken do
     {:ok, state}
   end
 
-  @spec process_spread([String.t()]) :: Spread.t()
+  @spec process_spread([String.t()]) :: Spread.spread()
   defp process_spread(spread) do
     %Spread{
       :pair => spread |> Enum.at(3),
