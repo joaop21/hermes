@@ -3,7 +3,7 @@ defmodule Streamer.Binance do
 
   require Logger
 
-  alias Streamer.Binance.Ticker
+  alias Streamer.Ticker
 
   @base_endpoint "wss://stream.binance.com:9443"
 
@@ -28,8 +28,7 @@ defmodule Streamer.Binance do
   @spec process_ticker(ticker :: map()) :: Ticker.ticker()
   defp process_ticker(ticker) do
     %Ticker{
-      :order_book_update_id => ticker["u"],
-      :symbol => ticker["s"],
+      :pair => ticker["s"],
       :bid_price => ticker["b"],
       :bid_quantity => ticker["B"],
       :ask_price => ticker["a"],
