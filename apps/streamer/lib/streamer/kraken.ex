@@ -3,14 +3,14 @@ defmodule Streamer.Kraken do
 
   require Logger
 
-  alias Streamer.Kraken.Spread
+  alias Streamer.Ticker
 
   @base_endpoint "wss://ws.kraken.com"
 
   ############################## Interface ##############################
 
-  @spec stream_spread() :: {:ok, pid()} | {:error, term()}
-  def stream_spread do
+  @spec stream_tickers() :: :ok | {:error, String.t()} | node()
+  def stream_tickers do
     @base_endpoint
     |> start_link()
     |> elem(1)
@@ -52,7 +52,7 @@ defmodule Streamer.Kraken do
 
   def handle_frame({_type, msg}, state) do
     case Jason.decode(msg) do
-      {:ok, [_channel_id | _tail] = spread} -> process_spread(spread)
+      {:ok, [_channel_id | _tail] = ticker} -> process_ticker(ticker)
       {:ok, %{"connectionID" => _conn}} -> Logger.info("Connection established!")
       {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
       _ -> :ok
@@ -60,15 +60,14 @@ defmodule Streamer.Kraken do
     {:ok, state}
   end
 
-  @spec process_spread([String.t()]) :: Spread.t()
-  defp process_spread(spread) do
-    %Spread{
-      :pair => spread |> Enum.at(3),
-      :bid_price => spread |> Enum.at(1) |> Enum.at(0),
-      :bid_volume => spread |> Enum.at(1) |> Enum.at(3),
-      :ask_price => spread |> Enum.at(1) |> Enum.at(1),
-      :ask_volume => spread |> Enum.at(1) |> Enum.at(4),
-      :timestamp => spread |> Enum.at(1) |> Enum.at(2)
+  @spec process_ticker([String.t()]) :: Ticker.ticker()
+  defp process_ticker(ticker) do
+    %Ticker{
+      :pair => ticker |> Enum.at(3),
+      :bid_price => ticker |> Enum.at(1) |> Enum.at(0),
+      :bid_quantity => ticker |> Enum.at(1) |> Enum.at(3),
+      :ask_price => ticker |> Enum.at(1) |> Enum.at(1),
+      :ask_quantity => ticker |> Enum.at(1) |> Enum.at(4)
     }
   end
 
