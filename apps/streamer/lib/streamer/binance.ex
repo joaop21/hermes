@@ -13,7 +13,7 @@ defmodule Streamer.Binance do
   def stream_tickers, do: @base_endpoint <> "/ws/!bookTicker" |> start_link()
 
   @spec start_link(url :: String.t()) :: {:ok, pid()} | {:error, term()}
-  defp start_link(url), do: WebSockex.start_link(url, __MODULE__, nil)
+  defp start_link(url), do: WebSockex.start_link(url, __MODULE__, nil, name: :"#{__MODULE__}")
 
   ############################## WebSockex callback implementation ##############################
 
