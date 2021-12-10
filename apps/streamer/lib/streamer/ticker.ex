@@ -5,12 +5,14 @@ defmodule Streamer.Ticker do
     bid_quantity :: String.t(),
     ask_price :: String.t(),
     ask_quantity :: String.t(),
+    exchanger :: String.t()
   }
   defstruct [
     :pair,
     :bid_price,
     :bid_quantity,
     :ask_price,
-    :ask_quantity
+    :ask_quantity,
+    :exchanger
   ]
 end
