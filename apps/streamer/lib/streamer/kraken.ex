@@ -13,12 +13,19 @@ defmodule Streamer.Kraken do
   def stream_tickers do
     @base_endpoint
     |> start_link()
-    |> elem(1)
-    |> subscribe_spread()
+    |> (&(
+      case &1 do
+        {:ok, pid} ->
+          subscribe_spread(pid)
+          {:ok, pid}
+
+        rest -> rest
+      end
+    )).()
   end
 
   @spec start_link(url :: String.t()) :: {:ok, pid()} | {:error, term()}
-  defp start_link(url), do: WebSockex.start_link(url, __MODULE__, nil)
+  defp start_link(url), do: WebSockex.start_link(url, __MODULE__, nil, name: :"#{__MODULE__}")
 
   @spec subscribe_spread(pid()) :: :ok | {:error, String.t()} | node()
   defp subscribe_spread(pid) do
@@ -53,7 +60,7 @@ defmodule Streamer.Kraken do
   def handle_frame({_type, msg}, state) do
     case Jason.decode(msg) do
       {:ok, [_channel_id | _tail] = ticker} -> process_ticker(ticker)
-      {:ok, %{"connectionID" => _conn}} -> Logger.info("Connection established!")
+      {:ok, %{"connectionID" => _conn}} -> Logger.info("Kraken - Connection established!")
       {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
       _ -> :ok
     end
