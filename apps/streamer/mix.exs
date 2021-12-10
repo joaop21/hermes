@@ -28,6 +28,7 @@ defmodule Streamer.MixProject do
     [
       {:jason, "~> 1.2.2"},
       {:krakex, "~> 0.7.0"},
+      {:phoenix_pubsub, "~> 2.0"},
       {:websockex, "~> 0.4.3"}
     ]
   end
