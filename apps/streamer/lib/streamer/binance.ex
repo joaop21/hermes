@@ -19,21 +19,37 @@ defmodule Streamer.Binance do
 
   def handle_frame({_type, msg}, state) do
     case Jason.decode(msg) do
-      {:ok, ticker} -> process_ticker(ticker)
+      {:ok, json} -> process_ticker(json)
       {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
     end
     {:ok, state}
   end
 
-  @spec process_ticker(ticker :: map()) :: Ticker.ticker()
-  defp process_ticker(ticker) do
+  @spec process_ticker(json :: map()) :: Ticker.__struct__
+  defp process_ticker(json) do
+    json
+    |> build()
+    |> publish()
+  end
+
+  @spec build(json :: map()) :: Ticker.__struct__
+  defp build(json) do
     %Ticker{
-      :pair => ticker["s"],
-      :bid_price => ticker["b"],
-      :bid_quantity => ticker["B"],
-      :ask_price => ticker["a"],
-      :ask_quantity => ticker["A"]
+      :pair => json["s"],
+      :bid_price => json["b"],
+      :bid_quantity => json["B"],
+      :ask_price => json["a"],
+      :ask_quantity => json["A"]
     }
+  end
+
+  @spec publish(ticker :: Ticker.__struct__) :: :ok | {:error, term()}
+  defp publish(%Ticker{pair: pair} = ticker) do
+    Phoenix.PubSub.broadcast(
+      Streamer.PubSub,
+      "Tickers:#{pair}",
+      ticker
+    )
   end
 
 end
