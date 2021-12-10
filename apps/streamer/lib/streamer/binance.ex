@@ -39,7 +39,8 @@ defmodule Streamer.Binance do
       :bid_price => json["b"],
       :bid_quantity => json["B"],
       :ask_price => json["a"],
-      :ask_quantity => json["A"]
+      :ask_quantity => json["A"],
+      :exchanger => "Binance"
     }
   end
 

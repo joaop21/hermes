@@ -9,7 +9,7 @@ defmodule Streamer.Kraken do
 
   ############################## Interface ##############################
 
-  @spec stream_tickers() :: :ok | {:error, String.t()} | node()
+  @spec stream_tickers() :: {:ok, pid()} | {:error, term()}
   def stream_tickers do
     @base_endpoint
     |> start_link()
@@ -59,7 +59,7 @@ defmodule Streamer.Kraken do
 
   def handle_frame({_type, msg}, state) do
     case Jason.decode(msg) do
-      {:ok, [_channel_id | _tail] = ticker} -> process_ticker(ticker)
+      {:ok, [_channel_id | _tail] = json} -> process_ticker(json)
       {:ok, %{"connectionID" => _conn}} -> Logger.info("Kraken - Connection established!")
       {:error, _} -> Logger.error("Unable to parse msg: #{msg}")
       _ -> :ok
@@ -67,15 +67,32 @@ defmodule Streamer.Kraken do
     {:ok, state}
   end
 
-  @spec process_ticker([String.t()]) :: Ticker.ticker()
-  defp process_ticker(ticker) do
+  @spec process_ticker([String.t()]) :: Ticker.__struct__
+  defp process_ticker(json) do
+    json
+    |> build()
+    |> publish()
+  end
+
+  @spec build([String.t()]) :: Ticker.__struct__
+  defp build(json) do
     %Ticker{
-      :pair => ticker |> Enum.at(3),
-      :bid_price => ticker |> Enum.at(1) |> Enum.at(0),
-      :bid_quantity => ticker |> Enum.at(1) |> Enum.at(3),
-      :ask_price => ticker |> Enum.at(1) |> Enum.at(1),
-      :ask_quantity => ticker |> Enum.at(1) |> Enum.at(4)
+      :pair => json |> Enum.at(3),
+      :bid_price => json |> Enum.at(1) |> Enum.at(0),
+      :bid_quantity => json |> Enum.at(1) |> Enum.at(3),
+      :ask_price => json |> Enum.at(1) |> Enum.at(1),
+      :ask_quantity => json |> Enum.at(1) |> Enum.at(4),
+      :exchanger => "Kraken"
     }
+  end
+
+  @spec publish(ticker :: Ticker.__struct__) :: :ok | {:error, term()}
+  defp publish(%Ticker{pair: pair} = ticker) do
+    Phoenix.PubSub.broadcast(
+      Streamer.PubSub,
+      "Tickers:#{pair}",
+      ticker
+    )
   end
 
 end
